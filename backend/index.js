@@ -1,3 +1,5 @@
+require('dotenv').config();
+const PORT = process.env.PORT || 4000;
 const express = require('express');
 const http = require('http');
 const cors = require('cors');
@@ -18,15 +20,18 @@ io.on('connection', (socket) => {
   console.log('🔌 Cliente conectado:', socket.id);
 
   socket.on('pingHost', (host) => {
-    exec(`ping -c 1 ${host}`, (err, stdout, stderr) => {
-      if (err) {
-        socket.emit('pingResult', { host, success: false });
-      } else {
-        const timeMatch = stdout.match(/time=(\\d+\\.?\\d*)/);
-        const time = timeMatch ? parseFloat(timeMatch[1]) : null;
-        socket.emit('pingResult', { host, success: true, latency: time });
-      }
-    });
+exec(`ping -n 1 ${host}`, (err, stdout, stderr) => {
+  if (err) {
+    socket.emit("pingResult", { host, success: false });
+  } else {
+    // Buscar tiempo en la salida de Windows
+    const timeMatch = stdout.match(/tiempo[=<]\s?(\d+)\s?ms/i) || stdout.match(/time[=<]?\s?(\d+)\s?ms/i);
+    const time = timeMatch ? parseInt(timeMatch[1]) : null;
+
+    socket.emit("pingResult", { host, success: true, latency: time });
+  }
+});
+
   });
 
   socket.on('disconnect', () => {
